@@ -1,0 +1,215 @@
+---
+title: "BT1101-Tutorial 3"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## Tutorial 3
+
+```{r load-libraries, echo=TRUE}
+
+library("dplyr") #need to call the libary before you use the package
+library("tidyr")
+library("rpivotTable")
+library("knitr")
+library("readxl")
+```
+
+### Tutorial 3 Question 2 (To be Submitted; 20 marks)
+
+- Dataset required: `PeoplesChoiceBank.xlsx`
+
+The `PeoplesChoiceBank.xlsx` data set contains data on customer account transactions that took place in Aug of 2014. Each of the column is defined as follows: 
+
+- `Date` : Date of transaction 
+- `Day of Week` : Day of transaction 
+- `Account` :  Account type 
+- `Type`: Transaction type 
+- `Amount` : Transaction amount
+- `Customer` : Customer type 
+- `Branch` : Bank account branch 
+
+
+```{r q2-read-dataset, echo=TRUE}
+#put in your working directory folder pathname 
+setwd("C:/Users/kctey/OneDrive/Desktop/NUS Y2S2/BT1101/Tutorial/Tutorial 3")
+
+#import excel file into RStudio
+Peoples_Choice_Bank <- read_excel("PeoplesChoiceBank.xlsx", skip=2)
+
+PB <- Peoples_Choice_Bank
+View(PB)
+
+```
+<p>
+**Now you will try to build some dashboards on a new dataset .**
+</p>
+
+### Q2.(a) Account Transaction Frequency Dashboard 
+The bank manager would like to have a dashboard that will allow him to visualize the frequency of account transactions according to these variables: `Day of Week`, `Branch`, `Customer`, `Account` and `Type`.
+
+- i. Generate a chart and table to allow the manager to view the frequency of transactions by `Day of Week` and a chart and table to view the frequency of transactions by `Branch`. (2 marks: 0.5 mark per table/chart)
+- ii. Generate another chart and table that allows the manager to visualize the frequency of transactions by `Day of Week` and `Branch`. (2 marks)
+- iii. Generate **an** appropriate chart and table to display the frequency of account transactions by `Account` and `Type`. (2 marks)
+- iv. Describe in your answer below what insights you can derive from each of the charts generated above. In particular, you may explain where the highest (or higher) and lowest (or lower) frequency are observed in each chart. (3 marks)
+- iv. Finally, provide an interactive pivot table for the manager to view the frequency of transactions by `Day of Week`, `Branch` and `Customer`. From the table, what would you conclude about frequency of transactions from new versus current customers? (2 marks) 
+
+<p style="color:red">**BEGIN: YOUR ANSWER**</p>
+```{r q2a, echo=TRUE}
+
+## Type your codes here
+
+##(i)
+Tran_Freq <- PB %>% count(`Day of Week`)
+Tran_Freq.spread <- Tran_Freq %>% spread(key=`Day of Week`, value=n)
+Tran_Freq.mat <- as.matrix(Tran_Freq.spread)
+kable(Tran_Freq.spread, caption="Frequency of transaction by day")
+barplot(Tran_Freq.mat,
+        main="Frequency of Transaction by day",
+        cex.names = 0.7)
+
+Branch_Freq <- PB%>%count(Branch)
+Branch_Freq.spread <- Branch_Freq %>%spread(key=Branch,value=n)
+Branch_Freq.mat <- as.matrix(Branch_Freq.spread)
+kable(Branch_Freq.spread,caption="Frequency of transaction by Branch")
+barplot(Branch_Freq.mat,
+        main="Frequency of Transaction by Branch",
+        cex.names=0.7)
+
+##(ii)
+DayAndBranch <- PB%>%group_by(`Day of Week`,Branch)%>%tally()
+DayAndBranch.spread <- DayAndBranch%>%spread(key=Branch,value=n)
+kable(DayAndBranch.spread, caption="Frequency of trans. by Day and Branch")
+DayAndBranch.mat <- as.matrix(DayAndBranch.spread[,c(2:4)])
+bar_col <- c("blue","orange","green","red","gray","pink")
+barplot(DayAndBranch.mat,
+        col=bar_col,
+        main="Frequency of trans. by Days and Branch",
+        beside=TRUE)
+legend("topright",cex=0.6,fill=bar_col,DayAndBranch.spread$`Day of Week`)
+
+##(iii)
+Acc_Type <- PB %>% group_by(Account, Type) %>% tally()
+Acc_Type.spread <- Acc_Type %>% spread(key=Account,value=n)
+Acc_Type.mat<- as.matrix(Acc_Type.spread[,c(2:5)])
+kable(Acc_Type.spread,caption="Frequency of trans. by account type")
+
+type_col <- c("red","green","blue","orange","gray","pink")
+par(xpd=TRUE, mar=par()$mar + c(0,0,0,10))
+barplot(Acc_Type.mat,
+        main="Frequency of trans. by account type",
+        col=type_col,
+        beside=TRUE,
+        cex.names=0.7,
+        las=2)
+legend(30,80,Acc_Type.spread$Type,cex=0.7,fill=type_col)
+
+
+```
+
+<p style="color:blue">
+From the graphs above, we know that most transactions are completed on Monday, and the most frequently visited branch is Anderson Hills.
+
+When further broken down, we notice that Anderson Hills Branch however, receives the mot transaction on Friday. In comparison, Blue Ash Branch receives the most transaction on Monday and the Delhi Branch receives the most transaction on Wednesday.
+
+Lastly, we see that there are the least number of IRA accounts. In addition, we can also notice that the Checking and Savings accounts have the highest numbers of Deposit type account, while on the other hand, the Certificate of Deposit account has the most number of renewal account.
+</p>
+
+<p style="color:red">**END: YOUR ANSWER**</p>
+
+### Q2.(b) Transaction Amount Dashboard 
+The manager would also like to examine `Amount` in more detail. He would like to visualize the frequency distribution of `Amount` and see how that varies by `Branch`. 
+
+- i. Display the chart and table for frequency distribution of `Amount`. (2 marks)
+- ii. Display the frequency distribution of `Amount` in a chart for each `Branch`. Differentiate each chart by including the branch name in the chart title. The manager would like the charts to be in green so please use different shades of green for each chart. (3 marks) 
+- iii. Base on the charts in (ii), describe any differences or similarities observed in terms of the distribution of `Amount` across branches. Can you tell which branch has brought in the largest dollar amount in total transactions for the month (1 mark)
+
+<p style="color:red">**BEGIN: YOUR ANSWER**</p>
+```{r q2b, echo=TRUE}
+## Type your codes here
+##2(i)
+h.amount <- hist(PB$Amount,
+                 main="Frequency Distribution of Amount",
+                 xlab="Amount",
+                 ylab="Frequency",
+                 col=c("darkorange"),
+                 breaks=5,
+                 ylim=c(0,600),
+                 labels=TRUE)
+
+amount.grp <- cut(PB$Amount, h.amount$breaks)
+t.amount <- table(amount.grp)
+kable(t.amount, caption="Frequency Distribution of Amount")
+
+
+##2(ii)
+AndersonHills <- PB[PB$Branch=="Anderson Hills",]
+h.anderson <- hist(AndersonHills$Amount,
+                   main="Anderson Hills",
+                   xlab="Amount",
+                   ylab="Frequency",
+                   col=c("chartreuse"),
+                   breaks=5,
+                   ylim=c(0,310),
+                   labels=TRUE)
+
+BlueAsh <- PB[PB$Branch=="Blue Ash",]
+h.anderson <- hist(BlueAsh$Amount,
+                   main="Blue Ash",
+                   xlab="Amount",
+                   ylab="Frequency",
+                   col=c("darkolivegreen"),
+                   breaks=5,
+                   ylim=c(0,310),
+                   labels=TRUE)
+
+Delhi <- PB[PB$Branch=="Delhi",]
+h.anderson <- hist(Delhi$Amount,
+                   main="Delhi",
+                   xlab="Amount",
+                   ylab="Frequency",
+                   col=c("darkgreen"),
+                   breaks=5,
+                   ylim=c(0,310),
+                   labels=TRUE)
+
+```
+
+
+<p style="color:blue">
+
+The most prominent similarity observed is that the all 3 branches receive the most amount of transaction less than $10,000. 
+
+However, Anderson Hills branch brings in the largest transaction amount as it receives the highest transaction frequency involving more than $50,000.
+
+</p>
+
+<p style="color:red">**END: YOUR ANSWER**</p>
+
+
+### Q2.(c) Transaction Amount Pareto Analyses
+- i. The manager would like to conduct a pareto analyses on `Amount` to understand if there is a small proportion of transactions that contribute most to total amount ($) in bank account transactions in the month. Could you help to generate the analyses? (2 marks)
+- ii. Describe in your answer below, the findings from your pareto analyses. (1 mark)
+
+
+<p style="color:red">**BEGIN: YOUR ANSWER**</p>
+```{r q2c, echo=TRUE}
+
+PB.amt <- PB %>% select(Amount) %>% arrange(desc(Amount))
+PB.amt$Percentage <- PB.amt$Amount/sum(PB.amt$Amount)
+PB.amt$cumsum <- cumsum(PB.amt$Percentage)
+PB.amt$Cumulative.percent <- as.numeric(rownames(PB))/nrow(PB)
+
+
+```
+
+<p style="color:blue">
+
+Based on the pareto analysis, we realize that the top 80% of the transaction amount are contributed by only 20% of the customers. Therefore, we can agree that a small proportion of transactions that contribute most to total amount ($) in bank account transactions in the month
+
+</p>
+
+<p style="color:red">**END: YOUR ANSWER**</p>
+
+
